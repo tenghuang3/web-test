@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>卡通歡樂倒數計時器</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Fredoka & Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Fredoka', 'Nunito', sans-serif;
+      background-color: #fef08a;
+      background-image: radial-gradient(#fde047 2px, transparent 2px);
+      background-size: 24px 24px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Custom Cartoon Pop Shadow Effects */
+    .pop-card {
+      box-shadow: 6px 6px 0px 0px #0f172a;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .pop-btn {
+      box-shadow: 4px 4px 0px 0px #0f172a;
+      transition: all 0.1s ease;
+    }
+    
+    .pop-btn:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px 0px #0f172a;
+    }
+    
+    .pop-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px 0px #0f172a;
+    }
+
+    .pop-input {
+      box-shadow: inset 3px 3px 0px 0px rgba(0,0,0,0.15);
+    }
+
+    /* Bounce Animations */
+    @keyframes cartoonPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+    
+    @keyframes floatY {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+
+    @keyframes shakeSlow {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(-3deg); }
+      40% { transform: rotate(3deg); }
+      60% { transform: rotate(-2deg); }
+      80% { transform: rotate(2deg); }
+    }
+
+    .anim-pulse { animation: cartoonPulse 1.2s infinite ease-in-out; }
+    .anim-float { animation: floatY 3s infinite ease-in-out; }
+    .anim-shake { animation: shakeSlow 0.4s infinite ease-in-out; }
+
+    /* SVG Progress Ring */
+    .progress-ring__circle {
+      transition: stroke-dashoffset 0.35s linear;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 text-slate-900 overflow-x-hidden">
+
+  <!-- Top Floating Decor Elements -->
+  <div class="fixed top-6 left-8 text-4xl hidden md:block opacity-80 pointer-events-none anim-float">⏰</div>
+  <div class="fixed top-12 right-12 text-5xl hidden md:block opacity-80 pointer-events-none anim-float" style="animation-delay: 1s;">⚡</div>
+  <div class="fixed bottom-8 left-12 text-5xl hidden md:block opacity-80 pointer-events-none anim-float" style="animation-delay: 1.5s;">⭐</div>
+  <div class="fixed bottom-12 right-10 text-4xl hidden md:block opacity-80 pointer-events-none anim-float" style="animation-delay: 0.5s;">🎈</div>
+
+  <div class="w-full max-w-md mx-auto flex flex-col items-center">
+
+    <!-- Header / Title Banner -->
+    <div class="relative mb-6 text-center">
+      <div class="bg-amber-400 border-4 border-slate-900 rounded-2xl px-6 py-2 pop-card inline-block transform -rotate-2">
+        <h1 class="text-2xl sm:text-3xl font-black tracking-wide text-slate-900 flex items-center gap-2">
+          <span>🐣</span> 歡樂嗶嗶鐘 <span>✨</span>
+        </h1>
+      </div>
+    </div>
+
+    <!-- Main Watch Body / Clock Surface -->
+    <div class="w-full bg-white border-4 border-slate-900 rounded-3xl p-6 pop-card relative flex flex-col items-center">
+      
+      <!-- Cartoon Ear Decor -->
+      <div class="absolute -top-6 -left-3 w-12 h-12 bg-pink-400 border-4 border-slate-900 rounded-full z-0 pop-card"></div>
+      <div class="absolute -top-6 -right-3 w-12 h-12 bg-pink-400 border-4 border-slate-900 rounded-full z-0 pop-card"></div>
+      
+      <!-- Sound Switch Button -->
+      <button id="soundToggleBtn" onclick="toggleMute()" class="absolute top-4 right-4 bg-sky-200 border-2 border-slate-900 p-2 rounded-xl text-xl pop-btn z-10" title="切換音效">
+        🔊
+      </button>
+
+      <!-- Mascot Face & Clock Dial Container -->
+      <div class="relative my-2 flex items-center justify-center">
+        
+        <!-- SVG Circular Progress Ring -->
+        <svg class="w-64 h-64 sm:w-72 sm:h-72 drop-shadow-md">
+          <!-- Background track -->
+          <circle
+            cx="50%"
+            cy="50%"
+            r="110"
+            stroke="#f1f5f9"
+            stroke-width="18"
+            fill="transparent"
+          />
+          <!-- Dotted accent border -->
+          <circle
+            cx="50%"
+            cy="50%"
+            r="122"
+            stroke="#0f172a"
+            stroke-width="3"
+            stroke-dasharray="8 8"
+            fill="transparent"
+          />
+          <!-- Dynamic progress ring -->
+          <circle
+            id="progressRing"
+            class="progress-ring__circle"
+            cx="50%"
+            cy="50%"
+            r="110"
+            stroke="#38bdf8"
+            stroke-width="18"
+            stroke-linecap="round"
+            fill="transparent"
+            stroke-dasharray="691.15"
+            stroke-dashoffset="0"
+          />
+        </svg>
+
+        <!-- Mascot Inner Face Content -->
+        <div class="absolute inset-0 flex flex-col items-center justify-center p-4">
+          
+          <!-- Animated Interactive Mascot Face SVG -->
+          <div id="mascotFaceContainer" class="w-20 h-16 sm:w-24 sm:h-20 mb-1 cursor-pointer transition-transform active:scale-95" onclick="petMascot()">
+            <svg id="mascotSvg" viewBox="0 0 100 80" class="w-full h-full">
+              <!-- Cheek Blushes -->
+              <circle cx="20" cy="50" r="10" fill="#fbcfe8" />
+              <circle cx="80" cy="50" r="10" fill="#fbcfe8" />
+
+              <!-- Eyes (Dynamic via JS) -->
+              <g id="mascotEyes">
+                <!-- Idle Happy Eyes -->
+                <ellipse cx="32" cy="38" rx="7" ry="9" fill="#0f172a" />
+                <circle cx="30" cy="35" r="3" fill="#ffffff" />
+                <ellipse cx="68" cy="38" rx="7" ry="9" fill="#0f172a" />
+                <circle cx="66" cy="35" r="3" fill="#ffffff" />
+              </g>
+
+              <!-- Mouth (Dynamic via JS) -->
+              <path id="mascotMouth" d="M 40 52 Q 50 64 60 52" stroke="#0f172a" stroke-width="4" stroke-linecap="round" fill="none" />
+              
+              <!-- Sweat drop (hidden by default) -->
+              <path id="sweatDrop" class="hidden" d="M 82 22 C 82 22 86 28 82 32 C 78 32 78 28 82 22 Z" fill="#38bdf8" stroke="#0f172a" stroke-width="1.5" />
+            </svg>
+          </div>
+
+          <!-- Digital Time Display -->
+          <div id="timeDisplay" class="text-4xl sm:text-5xl font-black tracking-wider text-slate-900 bg-amber-100 border-2 border-slate-900 px-4 py-1 rounded-2xl pop-card my-1 font-mono">
+            00:05:00
+          </div>
+
+          <!-- Status Message Tag -->
+          <div id="statusBadge" class="mt-2 text-xs sm:text-sm font-extrabold bg-emerald-300 text-slate-900 px-3 py-0.5 rounded-full border-2 border-slate-900 uppercase">
+            準備就緒！
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Preset Time Quick Selectors -->
+      <div class="w-full mt-4">
+        <div class="text-xs font-black text-slate-500 uppercase tracking-wider mb-2 text-center">⚡ 快速選單</div>
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="setPreset(1)" class="bg-cyan-200 hover:bg-cyan-300 border-2 border-slate-900 rounded-xl py-2 font-bold text-xs sm:text-sm pop-btn flex flex-col items-center">
+            <span>1 分</span>
+            <span class="text-[10px] text-slate-600 font-normal">伸展</span>
+          </button>
+          <button onclick="setPreset(3)" class="bg-amber-200 hover:bg-amber-300 border-2 border-slate-900 rounded-xl py-2 font-bold text-xs sm:text-sm pop-btn flex flex-col items-center">
+            <span>3 分</span>
+            <span class="text-[10px] text-slate-600 font-normal">泡麵</span>
+          </button>
+          <button onclick="setPreset(5)" class="bg-emerald-200 hover:bg-emerald-300 border-2 border-slate-900 rounded-xl py-2 font-bold text-xs sm:text-sm pop-btn flex flex-col items-center">
+            <span>5 分</span>
+            <span class="text-[10px] text-slate-600 font-normal">小憩</span>
+          </button>
+          <button onclick="setPreset(25)" class="bg-purple-200 hover:bg-purple-300 border-2 border-slate-900 rounded-xl py-2 font-bold text-xs sm:text-sm pop-btn flex flex-col items-center">
+            <span>25 分</span>
+            <span class="text-[10px] text-slate-600 font-normal">專注</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Custom Time Inputs -->
+      <div id="inputGroup" class="w-full mt-4 bg-slate-50 border-2 border-slate-900 rounded-2xl p-3">
+        <div class="text-xs font-black text-slate-500 uppercase tracking-wider mb-2 text-center">⚙️ 自訂時間</div>
+        <div class="flex items-center justify-center gap-2 font-bold">
+          <div class="flex flex-col items-center">
+            <span class="text-[10px] text-slate-500">時</span>
+            <input type="number" id="inputHours" min="0" max="99" value="0" class="w-14 text-center bg-white border-2 border-slate-900 rounded-xl p-1 text-lg font-bold pop-input focus:outline-none focus:ring-2 focus:ring-amber-400">
+          </div>
+          <span class="text-xl font-black mt-3">:</span>
+          <div class="flex flex-col items-center">
+            <span class="text-[10px] text-slate-500">分</span>
+            <input type="number" id="inputMinutes" min="0" max="59" value="5" class="w-14 text-center bg-white border-2 border-slate-900 rounded-xl p-1 text-lg font-bold pop-input focus:outline-none focus:ring-2 focus:ring-amber-400">
+          </div>
+          <span class="text-xl font-black mt-3">:</span>
+          <div class="flex flex-col items-center">
+            <span class="text-[10px] text-slate-500">秒</span>
+            <input type="number" id="inputSeconds" min="0" max="59" value="0" class="w-14 text-center bg-white border-2 border-slate-900 rounded-xl p-1 text-lg font-bold pop-input focus:outline-none focus:ring-2 focus:ring-amber-400">
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Action Control Buttons -->
+      <div class="w-full grid grid-cols-3 gap-3 mt-5">
+        <button id="startPauseBtn" onclick="toggleTimer()" class="col-span-2 bg-lime-400 hover:bg-lime-500 border-3 border-slate-900 py-3 rounded-2xl font-black text-lg sm:text-xl text-slate-900 pop-btn flex items-center justify-center gap-2">
+          <span id="startIcon">🚀</span> <span id="startBtnText">開始倒數</span>
+        </button>
+        <button onclick="resetTimer()" class="bg-rose-300 hover:bg-rose-400 border-3 border-slate-900 py-3 rounded-2xl font-black text-lg text-slate-900 pop-btn flex items-center justify-center gap-1">
+          <span>🔄</span> 重置
+        </button>
+      </div>
+
+      <!-- +1 Min Quick Addition Button -->
+      <div class="w-full mt-3 flex justify-center">
+        <button onclick="addExtraMinute()" class="w-full bg-amber-200 hover:bg-amber-300 border-2 border-slate-900 py-1.5 rounded-xl text-xs font-extrabold text-slate-800 pop-btn flex items-center justify-center gap-1">
+          <span>➕ 增加 1 分鐘</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Cartoon Footer Note -->
+    <div class="mt-4 text-center text-xs font-bold text-slate-700 bg-amber-200 border-2 border-slate-900 px-4 py-1.5 rounded-full pop-card">
+      💡 提示：點擊可愛的小臉可以跟牠互動喔！
+    </div>
+
+  </div>
+
+  <script>
+    // Global State Variables
+    let totalSeconds = 300;      // Default 5 mins
+    let remainingSeconds = 300;
+    let timerInterval = null;
+    let isRunning = false;
+    let isMuted = false;
+
+    // Web Audio Synthesizer Context
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    // Cute Web Audio Sound Generators (No external URL files needed)
+    function playPopSound(freq = 400) {
+      if (isMuted) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.8, ctx.currentTime + 0.08);
+        
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+      } catch (e) { console.log(e); }
+    }
+
+    function playTickSound() {
+      if (isMuted) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.03);
+        
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start();
+        osc.stop(ctx.currentTime + 0.03);
+      } catch (e) { console.log(e); }
+    }
+
+    function playAlarmFanfare() {
+      if (isMuted) return;
+      try {
+        const ctx = getAudioContext();
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99]; // C E G C E G
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          
+          const startTime = ctx.currentTime + idx * 0.12;
+          gain.gain.setValueAtTime(0.3, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+          
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          
+          osc.start(startTime);
+          osc.stop(startTime + 0.3);
+        });
+      } catch(e) { console.log(e); }
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      const btn = document.getElementById('soundToggleBtn');
+      btn.innerText = isMuted ? '🔇' : '🔊';
+      if (!isMuted) playPopSound(600);
+    }
+
+    // Mascot Facial Expressions State Machine
+    const mascotEyes = document.getElementById('mascotEyes');
+    const mascotMouth = document.getElementById('mascotMouth');
+    const sweatDrop = document.getElementById('sweatDrop');
+
+    function setMascotMood(mood) {
+      sweatDrop.classList.add('hidden');
+
+      if (mood === 'idle') {
+        mascotEyes.innerHTML = `
+          <ellipse cx="32" cy="38" rx="7" ry="9" fill="#0f172a" />
+          <circle cx="30" cy="35" r="3" fill="#ffffff" />
+          <ellipse cx="68" cy="38" rx="7" ry="9" fill="#0f172a" />
+          <circle cx="66" cy="35" r="3" fill="#ffffff" />
+        `;
+        mascotMouth.setAttribute('d', 'M 40 52 Q 50 64 60 52');
+      } 
+      else if (mood === 'running') {
+        // Focused / Determined
+        mascotEyes.innerHTML = `
+          <path d="M 24 38 L 40 34" stroke="#0f172a" stroke-width="4" stroke-linecap="round" />
+          <path d="M 76 38 L 60 34" stroke="#0f172a" stroke-width="4" stroke-linecap="round" />
+          <circle cx="32" cy="42" r="5" fill="#0f172a" />
+          <circle cx="68" cy="42" r="5" fill="#0f172a" />
+        `;
+        mascotMouth.setAttribute('d', 'M 42 56 Q 50 50 58 56');
+        sweatDrop.classList.remove('hidden');
+      } 
+      else if (mood === 'paused') {
+        // Sleeping Zzz
+        mascotEyes.innerHTML = `
+          <path d="M 24 38 Q 32 46 40 38" stroke="#0f172a" stroke-width="4" stroke-linecap="round" fill="none" />
+          <path d="M 60 38 Q 68 46 76 38" stroke="#0f172a" stroke-width="4" stroke-linecap="round" fill="none" />
+        `;
+        mascotMouth.setAttribute('d', 'M 44 54 Q 50 58 56 54');
+      } 
+      else if (mood === 'finished') {
+        // Super Excited Star Eyes!
+        mascotEyes.innerHTML = `
+          <text x="22" y="44" font-size="20">⭐</text>
+          <text x="58" y="44" font-size="20">⭐</text>
+        `;
+        mascotMouth.setAttribute('d', 'M 36 48 Q 50 72 64 48 Z');
+        mascotMouth.setAttribute('fill', '#f43f5e');
+      }
+    }
+
+    function petMascot() {
+      playPopSound(800);
+      const container = document.getElementById('mascotFaceContainer');
+      container.classList.add('scale-125', 'rotate-12');
+      setTimeout(() => {
+        container.classList.remove('scale-125', 'rotate-12');
+      }, 200);
+    }
+
+    // Timer Core Logic
+    function updateInputsFromSeconds(sec) {
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+
+      document.getElementById('inputHours').value = h;
+      document.getElementById('inputMinutes').value = m;
+      document.getElementById('inputSeconds').value = s;
+    }
+
+    function readSecondsFromInputs() {
+      const h = parseInt(document.getElementById('inputHours').value) || 0;
+      const m = parseInt(document.getElementById('inputMinutes').value) || 0;
+      const s = parseInt(document.getElementById('inputSeconds').value) || 0;
+      return Math.max(0, h * 3600 + m * 60 + s);
+    }
+
+    function renderDisplay() {
+      const h = Math.floor(remainingSeconds / 3600);
+      const m = Math.floor((remainingSeconds % 3600) / 60);
+      const s = remainingSeconds % 60;
+
+      const pad = (num) => String(num).padStart(2, '0');
+      
+      const timeStr = h > 0 
+        ? `${pad(h)}:${pad(m)}:${pad(s)}`
+        : `${pad(m)}:${pad(s)}`;
+      
+      document.getElementById('timeDisplay').innerText = timeStr;
+
+      // Update Circular SVG Progress
+      const circle = document.getElementById('progressRing');
+      const circumference = 2 * Math.PI * 110; // r=110
+      const progressRatio = totalSeconds > 0 ? remainingSeconds / totalSeconds : 0;
+      const offset = circumference - (progressRatio * circumference);
+      circle.style.strokeDashoffset = offset;
+
+      // Dynamic Color Shift based on remaining time
+      if (progressRatio < 0.2 && isRunning) {
+        circle.setAttribute('stroke', '#f43f5e'); // Danger Red
+      } else if (progressRatio < 0.5 && isRunning) {
+        circle.setAttribute('stroke', '#fbbf24'); // Warning Yellow
+      } else {
+        circle.setAttribute('stroke', '#38bdf8'); // Sky Blue
+      }
+    }
+
+    function setPreset(minutes) {
+      playPopSound(500);
+      if (isRunning) pauseTimer();
+      totalSeconds = minutes * 60;
+      remainingSeconds = totalSeconds;
+      updateInputsFromSeconds(totalSeconds);
+      setMascotMood('idle');
+      document.getElementById('statusBadge').innerText = '準備就緒！';
+      document.getElementById('statusBadge').className = 'mt-2 text-xs sm:text-sm font-extrabold bg-emerald-300 text-slate-900 px-3 py-0.5 rounded-full border-2 border-slate-900 uppercase';
+      renderDisplay();
+    }
+
+    function addExtraMinute() {
+      playPopSound(700);
+      totalSeconds += 60;
+      remainingSeconds += 60;
+      updateInputsFromSeconds(remainingSeconds);
+      renderDisplay();
+    }
+
+    function toggleTimer() {
+      playPopSound(600);
+      if (!isRunning) {
+        startTimer();
+      } else {
+        pauseTimer();
+      }
+    }
+
+    function startTimer() {
+      if (!isRunning) {
+        // Read input if starting fresh or updated
+        if (remainingSeconds <= 0) {
+          totalSeconds = readSecondsFromInputs();
+          remainingSeconds = totalSeconds;
+        }
+
+        if (remainingSeconds <= 0) return;
+
+        isRunning = true;
+        document.getElementById('startBtnText').innerText = '暫停倒數';
+        document.getElementById('startIcon').innerText = '⏸️';
+        document.getElementById('startPauseBtn').className = 'col-span-2 bg-amber-300 hover:bg-amber-400 border-3 border-slate-900 py-3 rounded-2xl font-black text-lg sm:text-xl text-slate-900 pop-btn flex items-center justify-center gap-2';
+
+        document.getElementById('statusBadge').innerText = '倒數中... 努力專注！';
+        document.getElementById('statusBadge').className = 'mt-2 text-xs sm:text-sm font-extrabold bg-sky-300 text-slate-900 px-3 py-0.5 rounded-full border-2 border-slate-900 uppercase anim-pulse';
+        
+        setMascotMood('running');
+
+        timerInterval = setInterval(() => {
+          if (remainingSeconds > 0) {
+            remainingSeconds--;
+            playTickSound();
+            renderDisplay();
+          } else {
+            finishTimer();
+          }
+        }, 1000);
+      }
+    }
+
+    function pauseTimer() {
+      if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        document.getElementById('startBtnText').innerText = '繼續倒數';
+        document.getElementById('startIcon').innerText = '▶️';
+        document.getElementById('startPauseBtn').className = 'col-span-2 bg-lime-400 hover:bg-lime-500 border-3 border-slate-900 py-3 rounded-2xl font-black text-lg sm:text-xl text-slate-900 pop-btn flex items-center justify-center gap-2';
+
+        document.getElementById('statusBadge').innerText = '已暫停';
+        document.getElementById('statusBadge').className = 'mt-2 text-xs sm:text-sm font-extrabold bg-slate-200 text-slate-900 px-3 py-0.5 rounded-full border-2 border-slate-900 uppercase';
+
+        setMascotMood('paused');
+      }
+    }
+
+    function resetTimer() {
+      playPopSound(300);
+      clearInterval(timerInterval);
+      isRunning = false;
+
+      totalSeconds = readSecondsFromInputs();
+      if (totalSeconds === 0) {
+        totalSeconds = 300;
+        updateInputsFromSeconds(300);
+      }
+      remainingSeconds = totalSeconds;
+
+      document.getElementById('startBtnText').innerText = '開始倒數';
+      document.getElementById('startIcon').innerText = '🚀';
+      document.getElementById('startPauseBtn').className = 'col-span-2 bg-lime-400 hover:bg-lime-500 border-3 border-slate-900 py-3 rounded-2xl font-black text-lg sm:text-xl text-slate-900 pop-btn flex items-center justify-center gap-2';
+
+      document.getElementById('statusBadge').innerText = '準備就緒！';
+      document.getElementById('statusBadge').className = 'mt-2 text-xs sm:text-sm font-extrabold bg-emerald-300 text-slate-900 px-3 py-0.5 rounded-full border-2 border-slate-900 uppercase';
+
+      setMascotMood('idle');
+      renderDisplay();
+    }
+
+    function finishTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      remainingSeconds = 0;
+      renderDisplay();
+
+      document.getElementById('startBtnText').innerText = '開始倒數';
+      document.getElementById('startIcon').innerText = '🚀';
+      document.getElementById('startPauseBtn').className = 'col-span-2 bg-lime-400 hover:bg-lime-500 border-3 border-slate-900 py-3 rounded-2xl font-black text-lg sm:text-xl text-slate-900 pop-btn flex items-center justify-center gap-2';
+
+      document.getElementById('statusBadge').innerText = '🎉 時間到囉！';
+      document.getElementById('statusBadge').className = 'mt-2 text-xs sm:text-sm font-extrabold bg-pink-400 text-white px-4 py-1 rounded-full border-2 border-slate-900 uppercase anim-shake';
+
+      setMascotMood('finished');
+      playAlarmFanfare();
+
+      // Trigger Festive Confetti
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+    }
+
+    // Sync user inputs when edited manually
+    ['inputHours', 'inputMinutes', 'inputSeconds'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => {
+        if (!isRunning) {
+          totalSeconds = readSecondsFromInputs();
+          remainingSeconds = totalSeconds;
+          renderDisplay();
+        }
+      });
+    });
+
+    // Initialize display on load
+    window.onload = () => {
+      renderDisplay();
+      setMascotMood('idle');
+    };
+  </script>
+</body>
+</html>
